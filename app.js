@@ -1,9 +1,9 @@
 const bodyParser = require("body-parser");
 const express = require("express");
+const { respondNotFound } = require("./helpers");
 const todo = require("./todo");
 const app = express();
 
-app.set("x-powered-by", false);
 app.use(bodyParser.json());
 
 app.get("/", todo.list);
@@ -13,8 +13,7 @@ app.delete("/:id", todo.delete);
 app.post("/:id/toggle", todo.toggle);
 
 app.get("*", (req, res) => {
-  res.status(404);
-  res.send("Not found");
+  respondNotFound(res);
 });
 
 app.use((err, req, res, next) => {

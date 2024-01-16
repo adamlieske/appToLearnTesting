@@ -1,3 +1,5 @@
+const { respondWithError, respondNotFound } = require("./helpers");
+
 let id = 1;
 
 function getId() {
@@ -6,24 +8,11 @@ function getId() {
   return currentId;
 }
 
-function createTodo(name) {
-  const id = getId();
-  return { id, name, done: false };
+function createTodo(name, id = getId(), done = false) {
+  return { id, name, done };
 }
 
-function respondWithError(res, error) {
-  res.status(400);
-  res.json({ error });
-}
-
-const todos = [createTodo("Dinner"), createTodo("Dinner")];
-exports.getTodos = () => todos;
-
-exports.list = (req, res) => {
-  res.json(todos);
-};
-
-exports.create = (req, res) => {
+function verifyName(req, res) {
   if (!req.body || !req.body.hasOwnProperty("name")) {
     return respondWithError(res, "Name is missing");
   }
@@ -35,19 +24,67 @@ exports.create = (req, res) => {
   if (name === "") {
     return respondWithError(res, "Name should not be empty");
   }
-  const todo = createTodo(name);
+  return { name };
+}
+
+const todos = [createTodo("Dinner"), createTodo("Dinner")];
+
+function addTodo(todo) {
   todos.push(todo);
+}
+function findTodo(id) {
+  const numberId = Number(id);
+  return todos.find((todo) => todo.id === numberId);
+}
+
+exports.getTodos = () => todos;
+exports.createTodo = createTodo;
+exports.addTodo = addTodo;
+exports.createTodo = createTodo;
+exports.list = (req, res) => {
+  res.json(todos);
+};
+
+exports.create = (req, res) => {
+  const cleanName = verifyName(req, res);
+  if (!cleanName) {
+    return;
+  }
+  const todo = createTodo(cleanName.name);
+  addTodo(todo);
   res.json(todo);
 };
 
 exports.change = (req, res) => {
-  res.json(`Change: ${req.params.id}`);
+  const cleanName = verifyName(req, res);
+  if (!cleanName) {
+    return;
+  }
+  const todo = findTodo(req.params.id);
+
+  if (typeof todo === "undefined") {
+    return respondNotFound(res);
+  }
+  todo.name = cleanName.name;
+  res.json(todo);
 };
 
 exports.delete = (req, res) => {
-  res.json(`Delete: ${req.params.id}`);
+  const todo = findTodo(req.params.id);
+
+  if (typeof todo === "undefined") {
+    return respondNotFound(res);
+  }
+  todos.splice(todos.indexOf(todo), 1);
+  res.json(todo);
 };
 
 exports.toggle = (req, res) => {
-  res.json(`Toggle: ${req.params.id}`);
+  const todo = findTodo(req.params.id);
+
+  if (typeof todo === "undefined") {
+    return respondNotFound(res);
+  }
+  todo.done = !todo.done;
+  res.json(todo);
 };
